@@ -1,0 +1,43 @@
+node {
+    
+    def buildNumber = BUILD_NUMBER
+    
+    stage("checkout code") {
+        git credentialsId: '22e96dee-7d1d-40f2-b804-b79120d07741', url: 'https://github.com/nithindevopsmt/spring-boot-mongo-docker.git'
+    }
+    
+    stage("Maven Integration") {
+        def mavenHome = tool name: "maven-3.6.3"
+        sh "${mavenHome}/bin/mvn clean package"
+    }
+    
+    stage("BuildImage and push image") {
+        sh "docker build -t bhumi1431/spring-boot-mongo:${buildNumber} ."
+        withCredentials([string(credentialsId: 'b8da5509-380b-409a-b487-8dd29c38b28d', variable: 'dockerhubpasswd')]) {
+        sh "docker login -u bhumi1431 -p ${dockerhubpasswd}"
+        }
+        sh "docker push bhumi1431/spring-boot-mongo:${buildNumber}"
+    }
+    
+     stage('replace latest with buildnumber') {
+            sh "sed -i 's/latest/$buildNumber/1' docker-compose.yml"
+        }
+        
+    stage("deploy in Dev Environment") {
+        sshagent(['77317dc3-d0f0-4a4b-a8a5-c77e18f41597']) {
+        sh "scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@13.232.147.27:/home/ubuntu/docker-compose.yml"
+        sh "scp -o StrictHostKeyChecking=no Docker_compose_Dev_Env.yml ubuntu@13.232.147.27:/home/ubuntu/Docker_compose_Dev_Env.yml"
+        sh "ssh -o StrictHostKeyChecking=no ubuntu@13.232.147.27 docker-compose -f docker-compose.yml -f Docker_compose_Dev_Env.yml up -d"
+
+        }
+        
+    }  
+    
+     stage("deploy in Dev Environment") {
+        sshagent(['77317dc3-d0f0-4a4b-a8a5-c77e18f41597']) {
+        sh "scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@13.127.1.166:/home/ubuntu/docker-compose.yml"
+        sh "scp -o StrictHostKeyChecking=no Docker_compose_QA_Env.yml ubuntu@13.127.1.166:/home/ubuntu/Docker_compose_QA_Env.yml"
+        sh "ssh -o StrictHostKeyChecking=no ubuntu@13.127.1.166 docker-compose -f docker-compose.yml -f Docker_compose_QA_Env.yml up -d"
+        }
+     }
+}
