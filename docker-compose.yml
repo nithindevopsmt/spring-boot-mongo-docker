@@ -2,7 +2,7 @@ version: '3.1'
 
 services:
   springboot:
-    image: dockerhandson/spring-boot-mongo:1
+    image: bhumi1431/spring-boot-mongo:latest
    # environment:
    # - MONGO_DB_HOSTNAME=mongo
    # - MONGO_DB_USERNAME=devdb
